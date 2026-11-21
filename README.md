@@ -1,10 +1,16 @@
 # Windows PinchZoom
 
-A Windows desktop magnifier controlled by touchpad pinch, mouse wheel, or keyboard. Magnification follows the pointer. Zoom can reach 100×, with a pixel grid at 15× and above.
+A Windows desktop magnifier with KDE-style **Alt + two-finger pinch** on supported touchpads. Zoom into the desktop around your pointer, up to 100×, with a pixel grid at 15× and above. Mouse wheel and keyboard controls are also available.
+
+[Download v0.1.0 for Windows 11 x64](https://github.com/KHammer404/windows-pinchzoom/releases/download/v0.1.0/Windows-PinchZoom-v0.1.0-win-x64.zip) · [Pre-release notes](https://github.com/KHammer404/windows-pinchzoom/releases/tag/v0.1.0) · [Report input compatibility](https://github.com/KHammer404/windows-pinchzoom/issues/new?template=compatibility.yml)
+
+![The desktop zooms continuously from 1× into a pixel grid, then back out. The zoom stays centered on a small, colored pixel pattern.](docs/demo.gif)
+
+*Recorded CF-SV1 pinch input replayed on an illustrated desktop using the app's capture renderer.*
 
 ## Download and use
 
-Download the ZIP from [Releases](../../releases), extract it, and run **Windows-PinchZoom.exe**. The app runs in the background. It does not install a driver or start automatically.
+Extract the ZIP and run **Windows-PinchZoom.exe**. The portable build runs in the background without installing a driver. Run the executable each time you want to use it.
 
 | Input | What to do |
 | --- | --- |
@@ -18,11 +24,17 @@ On the supported Synaptics device, the app selects the device-specific input pat
 
 ## Compatibility
 
-- Built for Windows 11 x64. The continuous Synaptics pinch has been used on a Panasonic CF-SV1, device ID **SYNA0102**, with the Synaptics RMI HID driver. Other devices with the same ID still need their report format verified.
-- The standard mode does not require a particular touchpad. Windows Precision Touchpad support depends on whether the device exposes its contact reports to applications. Keyboard controls and a regular vertical mouse wheel are the fallbacks.
-- On a single display, low magnification uses Windows' native magnifier transform. At higher magnification, the app draws an in-memory desktop capture and pixel grid in one click-through window. With multiple displays, standard mode magnifies the display under the pointer using the capture path. Multi-display behavior has not been verified on physical hardware.
-- The capture path may show blank areas for protected video. It does not save or transmit captured frames. The zoom overlay is excluded from capture to prevent feedback.
-- Quit Windows Magnifier or another desktop magnifier before opening this app.
+| Setup | What has been verified |
+| --- | --- |
+| Panasonic Let's note CF-SV1RDLVS · Synaptics `SYNA0102`, driver `19.5.26.24` · Windows 11 x64 · one active display | Two-finger pinch tested on one laptop. |
+| Standard mode · Windows 11 x64 · one active display | Mouse wheel and keyboard zoom handlers verified with simulated input on the test laptop. |
+| Windows Precision Touchpad | Experimental. Pinch depends on which contact reports the device exposes. Try the mouse wheel or keyboard if pinch fails. |
+| Other legacy touchpads, including other `SYNA0102` models | Untested. The detected device ID alone does not confirm the report format. |
+| Multiple displays | Experimental in standard mode. The app targets the display under the pointer. |
+
+Use the [compatibility form](https://github.com/KHammer404/windows-pinchzoom/issues/new?template=compatibility.yml) to tell us which laptop, Windows version and input method you tried. Working setups are welcome too.
+
+Quit Windows Magnifier or another desktop magnifier before starting. On a single display the app uses native Windows magnification at low zoom. The capture renderer draws the high-zoom view and pixel grid in one click-through window. Captured frames stay in memory, and protected video may appear blank.
 
 ## Build from source
 

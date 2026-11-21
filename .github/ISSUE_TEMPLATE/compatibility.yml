@@ -1,0 +1,52 @@
+name: Touchpad and input compatibility
+description: Tell us whether pinch, mouse wheel, or keyboard zoom works on your Windows setup.
+title: "[Compatibility] "
+body:
+  - type: input
+    id: app-version
+    attributes:
+      label: Windows PinchZoom version
+      placeholder: v0.1.0
+    validations:
+      required: true
+  - type: input
+    id: windows-version
+    attributes:
+      label: Windows version and build
+      description: Run winver to find the version and OS build.
+    validations:
+      required: true
+  - type: input
+    id: device
+    attributes:
+      label: Laptop or touchpad model
+      description: Include the touchpad driver version or hardware ID if known. Omit serial numbers and other personal details.
+    validations:
+      required: true
+  - type: dropdown
+    id: input
+    attributes:
+      label: Input tested
+      options:
+        - Alt + two-finger pinch
+        - Alt + mouse wheel
+        - Keyboard shortcuts
+    validations:
+      required: true
+  - type: dropdown
+    id: outcome
+    attributes:
+      label: Result
+      options:
+        - Works
+        - Partially works
+        - Does not work
+    validations:
+      required: true
+  - type: textarea
+    id: details
+    attributes:
+      label: Test details
+      description: Include the number of active displays, how you launched the app (default, --standard, or --wheel), what you tried, and what happened.
+    validations:
+      required: true

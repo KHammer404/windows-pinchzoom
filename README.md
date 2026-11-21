@@ -8,9 +8,17 @@
 
 *Recorded CF-SV1 pinch input replayed on a sample desktop.*
 
-## Quick start
+## Install and run
 
-Extract the ZIP and run **Windows-PinchZoom.exe**. The [v0.1.0 pre-release](https://github.com/KHammer404/windows-pinchzoom/releases/tag/v0.1.0) runs in the background and uses your existing drivers. Quit Windows Magnifier or any other desktop magnifier first.
+The [v0.1.0 pre-release](https://github.com/KHammer404/windows-pinchzoom/releases/tag/v0.1.0) is a portable app for **Windows 11 x64**. It uses your existing drivers.
+
+1. Download [Windows-PinchZoom-v0.1.0-win-x64.zip](https://github.com/KHammer404/windows-pinchzoom/releases/download/v0.1.0/Windows-PinchZoom-v0.1.0-win-x64.zip).
+2. In File Explorer, right-click the ZIP and choose **Extract All**. Choose a folder and click **Extract**.
+3. Quit any desktop magnifier that is already running. Open the extracted folder and double-click **Windows-PinchZoom.exe**. The app runs in the background.
+
+To remove the app, press <kbd>Ctrl</kbd>+<kbd>Shift</kbd>+<kbd>F12</kbd> to exit, then delete the extracted folder.
+
+## Controls
 
 | Action | Control |
 | --- | --- |

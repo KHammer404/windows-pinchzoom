@@ -2,7 +2,7 @@
 
 **KDE-style desktop zoom for Windows 11.** Hold <kbd>Alt</kbd> and pinch on a supported touchpad, then move the pointer to look around. Zoom up to **100×**, with a pixel grid from **15×**.
 
-[**Download the portable x64 ZIP**](https://github.com/KHammer404/windows-pinchzoom/releases/download/v0.1.0/Windows-PinchZoom-v0.1.0-win-x64.zip) · [14-second demo (MP4)](https://github.com/KHammer404/windows-pinchzoom/releases/download/v0.1.0/Windows-PinchZoom-demo.mp4) · [Report compatibility](https://github.com/KHammer404/windows-pinchzoom/issues/new?template=compatibility.yml)
+[**Download the portable x64 ZIP**](https://github.com/KHammer404/windows-pinchzoom/releases/download/v0.1.1/Windows-PinchZoom-v0.1.1-win-x64.zip) · [14-second demo (MP4)](https://github.com/KHammer404/windows-pinchzoom/releases/download/v0.1.0/Windows-PinchZoom-demo.mp4) · [Report compatibility](https://github.com/KHammer404/windows-pinchzoom/issues/new?template=compatibility.yml)
 
 ![The desktop zooms in and pans at 8.5×, then zooms to 100× and pans with the pixel grid visible before returning to normal.](docs/demo.gif)
 
@@ -10,9 +10,9 @@
 
 ## Install and run
 
-The [v0.1.0 pre-release](https://github.com/KHammer404/windows-pinchzoom/releases/tag/v0.1.0) is a portable app for **Windows 11 x64**. It uses your existing drivers.
+The [v0.1.1 pre-release](https://github.com/KHammer404/windows-pinchzoom/releases/tag/v0.1.1) is a portable app for **Windows 11 x64**. It uses your existing drivers.
 
-1. Download [Windows-PinchZoom-v0.1.0-win-x64.zip](https://github.com/KHammer404/windows-pinchzoom/releases/download/v0.1.0/Windows-PinchZoom-v0.1.0-win-x64.zip).
+1. Download [Windows-PinchZoom-v0.1.1-win-x64.zip](https://github.com/KHammer404/windows-pinchzoom/releases/download/v0.1.1/Windows-PinchZoom-v0.1.1-win-x64.zip).
 2. In File Explorer, right-click the ZIP and choose **Extract All**. Choose a folder and click **Extract**.
 3. Quit any desktop magnifier that is already running. Open the extracted folder and double-click **Windows-PinchZoom.exe**. The app runs in the background.
 

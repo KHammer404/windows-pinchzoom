@@ -98,6 +98,9 @@ internal static partial class PinchZoom {
     private static extern bool StretchBlt(IntPtr destination, int dx, int dy, int dw, int dh,
         IntPtr source, int sx, int sy, int sw, int sh, uint operation);
 
+    [DllImport("gdi32.dll")]
+    private static extern bool PatBlt(IntPtr target, int x, int y, int width, int height, uint operation);
+
     private static bool quit;
 
     private sealed class Gesture {
@@ -258,21 +261,23 @@ internal static partial class PinchZoom {
                 if (!StretchBlt(target, destination.Left, destination.Top, destination.Width, destination.Height,
                     sourceDc, 0, 0, source.Width, source.Height, 0x00cc0020))
                     throw new InvalidOperationException("Could not paint the magnified frame.");
+                if (scale >= PixelGridZoom) PaintGrid(target);
             } finally { e.Graphics.ReleaseHdc(target); }
-            if (scale < PixelGridZoom) return;
+        }
 
-            e.Graphics.PixelOffsetMode = System.Drawing.Drawing2D.PixelOffsetMode.None;
-            using (var pen = new Pen(Color.FromArgb(145, 0, 0, 0))) {
-                for (int column = 0; column <= source.Width; column++) {
-                    int x = (int)Math.Round(destination.Left + column * (double)destination.Width / source.Width);
-                    if (x >= 0 && x < ClientSize.Width)
-                        e.Graphics.DrawLine(pen, x, 0, x, ClientSize.Height - 1);
-                }
-                for (int row = 0; row <= source.Height; row++) {
-                    int y = (int)Math.Round(destination.Top + row * (double)destination.Height / source.Height);
-                    if (y >= 0 && y < ClientSize.Height)
-                        e.Graphics.DrawLine(pen, 0, y, ClientSize.Width - 1, y);
-                }
+        private void PaintGrid(IntPtr target) {
+            const uint Blackness = 0x00000042;
+            Size canvas = ClientSize;
+
+            for (int column = 0; column <= source.Width; column++) {
+                int x = (int)Math.Round(destination.Left + column * (double)destination.Width / source.Width);
+                if (x >= 0 && x < canvas.Width && !PatBlt(target, x, 0, 1, canvas.Height, Blackness))
+                    throw new InvalidOperationException("Could not paint a zoom grid column.");
+            }
+            for (int row = 0; row <= source.Height; row++) {
+                int y = (int)Math.Round(destination.Top + row * (double)destination.Height / source.Height);
+                if (y >= 0 && y < canvas.Height && !PatBlt(target, 0, y, canvas.Width, 1, Blackness))
+                    throw new InvalidOperationException("Could not paint a zoom grid row.");
             }
         }
 

@@ -178,11 +178,15 @@ internal static partial class PinchZoom {
         }
     }
 
-    private static bool ShouldStop() {
+    private static bool ShouldStop(Viewport viewport) {
+        bool screenshot = false;
         NativeMessage message;
         while (PeekMessage(out message, IntPtr.Zero, WmHotkey, WmHotkey, 1)) {
-            if (message.WParam.ToUInt64() == HotkeyId) quit = true;
+            ulong id = message.WParam.ToUInt64();
+            if (id == HotkeyId) quit = true;
+            if (id == ScreenshotHotkeyId) screenshot = true;
         }
+        if (!quit && screenshot) CaptureScreenshot(viewport);
         return quit;
     }
 
@@ -229,7 +233,13 @@ internal static partial class PinchZoom {
         }
 
         public void RenderFrame(double zoom, Point cursor, Rectangle screen) {
-            double originX = cursor.X * (1 - 1 / zoom), originY = cursor.Y * (1 - 1 / zoom);
+            double offsetRatio = 1 - 1 / zoom;
+            CaptureFrame(zoom, cursor.X * offsetRatio, cursor.Y * offsetRatio, screen);
+            if (!Visible) Show();
+            Refresh();
+        }
+
+        public void CaptureFrame(double zoom, double originX, double originY, Rectangle screen) {
             int left = (int)Math.Floor(originX), top = (int)Math.Floor(originY);
             int right = Math.Min(screen.Width, (int)Math.Ceiling(originX + screen.Width / zoom));
             int bottom = Math.Min(screen.Height, (int)Math.Ceiling(originY + screen.Height / zoom));
@@ -246,23 +256,33 @@ internal static partial class PinchZoom {
             source = new Rectangle(0, 0, width, height);
             int dx = (int)Math.Round((left - originX) * zoom), dy = (int)Math.Round((top - originY) * zoom);
             destination = new Rectangle(dx, dy, (int)Math.Ceiling(width * zoom), (int)Math.Ceiling(height * zoom));
-            if (!Visible) Show();
-            Refresh();
         }
 
         protected override void OnPaint(PaintEventArgs e) {
+            DrawFrame(e.Graphics);
+        }
+
+        public Bitmap Snapshot() {
+            var image = new Bitmap(ClientSize.Width, ClientSize.Height, System.Drawing.Imaging.PixelFormat.Format32bppRgb);
+            try {
+                using (Graphics graphics = Graphics.FromImage(image)) DrawFrame(graphics);
+                return image;
+            } catch { image.Dispose(); throw; }
+        }
+
+        private void DrawFrame(Graphics graphics) {
             if (source.IsEmpty || sourceDc == IntPtr.Zero) {
-                e.Graphics.Clear(Color.Black);
+                graphics.Clear(Color.Black);
                 return;
             }
-            IntPtr target = e.Graphics.GetHdc();
+            IntPtr target = graphics.GetHdc();
             try {
                 SetStretchBltMode(target, 3); // COLORONCOLOR
                 if (!StretchBlt(target, destination.Left, destination.Top, destination.Width, destination.Height,
                     sourceDc, 0, 0, source.Width, source.Height, 0x00cc0020))
                     throw new InvalidOperationException("Could not paint the magnified frame.");
                 if (scale >= PixelGridZoom) PaintGrid(target);
-            } finally { e.Graphics.ReleaseHdc(target); }
+            } finally { graphics.ReleaseHdc(target); }
         }
 
         private void PaintGrid(IntPtr target) {
@@ -301,6 +321,7 @@ internal static partial class PinchZoom {
         private readonly bool useNativeZoom;
         private ZoomSurface surface;
         private Rectangle surfaceBounds;
+        private Rectangle nativeBounds;
         private Point? pinchAnchor;
         private Point lastCursor;
         private double lastZoom;
@@ -324,6 +345,7 @@ internal static partial class PinchZoom {
         }
 
         public void Update(double zoom, Rectangle screen, bool pinching) {
+            zoomActive = zoom > 1;
             if (zoom == 1) {
                 if (surface != null && surface.Visible) surface.Hide();
                 SetNativeZoom(1, Point.Empty);
@@ -349,6 +371,7 @@ internal static partial class PinchZoom {
             // Keep the current rendering path through tiny movements near 15x.
             if (useNativeZoom && zoom < (gridVisible ? PixelGridExitZoom : PixelGridZoom)) {
                 SetNativeZoom(zoom, cursor);
+                nativeBounds = screen;
                 if (gridVisible) surface.Hide();
                 return;
             }
@@ -366,7 +389,55 @@ internal static partial class PinchZoom {
             lastZoom = zoom;
         }
 
+        public void SelectZoomedArea() {
+            bool surfaceVisible = surface != null && surface.Visible;
+            if (!surfaceVisible && nativeZoom <= 1) return;
+
+            Rectangle bounds = surfaceVisible ? surfaceBounds : nativeBounds;
+            using (Bitmap image = surfaceVisible ? surface.Snapshot() : CaptureNativeFrame(bounds))
+            using (var selection = new ScreenshotSelection(image, bounds)) {
+                bool suspended = false;
+                if (!surfaceVisible) {
+                    selection.Shown += delegate {
+                        // Paint the replacement before removing the native transform.
+                        selection.Update();
+                        suspended = MagSetFullscreenTransform(1, 0, 0);
+                        if (!suspended) selection.DialogResult = DialogResult.Cancel;
+                    };
+                }
+
+                Application.AddMessageFilter(selection);
+                try {
+                    // An owned selection stays above the frozen overlay throughout the capture.
+                    DialogResult result = surfaceVisible ? selection.ShowDialog(surface) : selection.ShowDialog();
+                    if (result == DialogResult.OK) {
+                        using (Bitmap cropped = image.Clone(selection.SelectedArea, image.PixelFormat)) {
+                            var data = new DataObject();
+                            data.SetImage(cropped);
+                            Clipboard.SetDataObject(data, true, 5, 40);
+                        }
+                    }
+                } finally {
+                    Application.RemoveMessageFilter(selection);
+                    if (suspended && !quit && !MagSetFullscreenTransform(nativeZoom, nativeOffset.X, nativeOffset.Y)) {
+                        nativeZoom = 1;
+                        nativeOffset = Point.Empty;
+                    }
+                }
+            }
+        }
+
+        private Bitmap CaptureNativeFrame(Rectangle screen) {
+            double x = Math.Min(nativeOffset.X, screen.Width - screen.Width / (double)nativeZoom);
+            double y = Math.Min(nativeOffset.Y, screen.Height - screen.Height / (double)nativeZoom);
+            using (var snapshot = new ZoomSurface(screen)) {
+                snapshot.CaptureFrame(nativeZoom, x, y, screen);
+                return snapshot.Snapshot();
+            }
+        }
+
         public void Dispose() {
+            zoomActive = false;
             try {
                 if (surface != null) surface.Dispose();
             } finally {
@@ -405,6 +476,7 @@ internal static partial class PinchZoom {
                 if (!RegisterHotKey(IntPtr.Zero, HotkeyId, 0x4006, 0x7b))
                     throw new InvalidOperationException("Ctrl+Shift+F12 is unavailable. No zoom was applied.");
                 bool initialized = false;
+                SnippingShortcut snipping = null;
                 var viewport = new Viewport();
                 try {
                     initialized = MagInitialize();
@@ -412,17 +484,18 @@ internal static partial class PinchZoom {
                     float initialZoom; int initialX, initialY;
                     if (!MagGetFullscreenTransform(out initialZoom, out initialX, out initialY) || initialZoom > 1.001)
                         throw new InvalidOperationException("Turn off Windows Magnifier before starting the trial.");
+                    snipping = new SnippingShortcut(IntPtr.Zero);
                     Console.WriteLine("Hold Alt and spread or pinch " + fingers + " fingers. Ctrl+Shift+F12 quits and resets zoom.");
                     Console.WriteLine("Native low zoom; single-frame grid at 15x. Maximum zoom: 100x.");
                     var screen = Screen.PrimaryScreen.Bounds;
                     var gesture = new Gesture();
                     var packet = new byte[ReportLength];
                     bool pinching = false;
-                    while (!ShouldStop()) {
+                    while (!ShouldStop(viewport)) {
                         viewport.Update(gesture.Zoom, screen, pinching && AltHeld());
                         var read = input.BeginRead(packet, 0, packet.Length, null, null);
                         using (var ready = read.AsyncWaitHandle) {
-                            while (!ready.WaitOne(12) && !ShouldStop())
+                            while (!ready.WaitOne(12) && !ShouldStop(viewport))
                                 viewport.Update(gesture.Zoom, screen, pinching && AltHeld());
                             if (quit) { CancelIoEx(device, IntPtr.Zero); break; }
                             if (input.EndRead(read) != packet.Length) break;
@@ -432,9 +505,13 @@ internal static partial class PinchZoom {
                         gesture.Update(distance);
                     }
                 } finally {
-                    viewport.Dispose();
-                    if (initialized) MagUninitialize();
-                    UnregisterHotKey(IntPtr.Zero, HotkeyId);
+                    try {
+                        if (snipping != null) snipping.Dispose();
+                        viewport.Dispose();
+                    } finally {
+                        if (initialized) MagUninitialize();
+                        UnregisterHotKey(IntPtr.Zero, HotkeyId);
+                    }
                 }
             }
         }

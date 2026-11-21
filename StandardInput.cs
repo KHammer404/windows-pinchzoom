@@ -145,10 +145,10 @@ internal static partial class PinchZoom {
     private const int ZoomInId = 2, ZoomOutId = 3, ResetId = 4, NumpadInId = 5, NumpadOutId = 6;
 
     [UnmanagedFunctionPointer(CallingConvention.Winapi)]
-    private delegate IntPtr MouseHook(int code, IntPtr message, IntPtr data);
+    private delegate IntPtr LowLevelHookProcedure(int code, IntPtr message, IntPtr data);
 
     [DllImport("user32.dll", SetLastError = true, EntryPoint = "SetWindowsHookExW")]
-    private static extern IntPtr SetWindowsHookEx(int kind, MouseHook procedure, IntPtr module, uint thread);
+    private static extern IntPtr SetWindowsHookEx(int kind, LowLevelHookProcedure procedure, IntPtr module, uint thread);
 
     [DllImport("user32.dll")]
     private static extern bool UnhookWindowsHookEx(IntPtr hook);
@@ -171,17 +171,17 @@ internal static partial class PinchZoom {
     [DllImport("kernel32.dll", CharSet = CharSet.Unicode)]
     private static extern IntPtr GetModuleHandle(string name);
 
-    private sealed class WheelInput : IDisposable {
-        private readonly IntPtr receiver;
+    private sealed class InputHook : IDisposable {
+        private readonly int kind;
         private readonly Thread worker;
         private readonly ManualResetEvent ready = new ManualResetEvent(false);
-        private readonly MouseHook procedure;
+        private readonly LowLevelHookProcedure procedure;
         private uint threadId;
         public bool Active { get; private set; }
 
-        public WheelInput(IntPtr receiver) {
-            this.receiver = receiver;
-            procedure = OnMouse;
+        public InputHook(int kind, LowLevelHookProcedure procedure) {
+            this.kind = kind;
+            this.procedure = procedure;
             worker = new Thread(Receive);
             worker.IsBackground = true;
             worker.Start();
@@ -192,13 +192,30 @@ internal static partial class PinchZoom {
             threadId = GetCurrentThreadId();
             NativeMessage message;
             PeekMessage(out message, IntPtr.Zero, 0, 0, 0);
-            IntPtr hook = SetWindowsHookEx(14, procedure, GetModuleHandle(null), 0);
+            IntPtr hook = SetWindowsHookEx(kind, procedure, GetModuleHandle(null), 0);
             Active = hook != IntPtr.Zero;
             ready.Set();
             if (!Active) return;
             try {
                 while (GetMessage(out message, IntPtr.Zero, 0, 0) > 0) { }
             } finally { UnhookWindowsHookEx(hook); }
+        }
+
+        public void Dispose() {
+            if (Active) PostThreadMessage(threadId, 0x0012, UIntPtr.Zero, IntPtr.Zero);
+            worker.Join();
+            ready.Dispose();
+        }
+    }
+
+    private sealed class WheelInput : IDisposable {
+        private readonly IntPtr receiver;
+        private readonly InputHook hook;
+        public bool Active { get { return hook.Active; } }
+
+        public WheelInput(IntPtr receiver) {
+            this.receiver = receiver;
+            hook = new InputHook(14, OnMouse);
         }
 
         private IntPtr OnMouse(int code, IntPtr message, IntPtr data) {
@@ -213,9 +230,7 @@ internal static partial class PinchZoom {
         }
 
         public void Dispose() {
-            if (Active) PostThreadMessage(threadId, 0x0012, UIntPtr.Zero, IntPtr.Zero);
-            worker.Join();
-            ready.Dispose();
+            hook.Dispose();
         }
     }
 
@@ -228,9 +243,11 @@ internal static partial class PinchZoom {
         private readonly int headerSize = Marshal.SizeOf(typeof(RawHeader));
         private readonly List<int> hotkeys = new List<int>();
         private WheelInput wheel;
+        private SnippingShortcut snipping;
         private IntPtr buffer;
         private uint bufferLength;
         private bool pinching;
+        private bool capturing;
         public Exception Failure { get; private set; }
 
         public StandardWindow(bool wheelOnly) {
@@ -248,6 +265,7 @@ internal static partial class PinchZoom {
                 if (RegisterHotKey(Handle, NumpadOutId, CtrlAlt, 0x6d)) hotkeys.Add(NumpadOutId);
                 bool raw = !wheelOnly && SetRawTarget(Handle, 0x100);
                 wheel = new WheelInput(Handle);
+                snipping = new SnippingShortcut(Handle);
                 Console.WriteLine("Standard Windows mode. Precision input registered: " + raw + "; wheel hook: " + wheel.Active);
                 Console.WriteLine("Input window handle: " + Handle.ToInt64());
                 timer.Start();
@@ -302,6 +320,7 @@ internal static partial class PinchZoom {
         }
 
         private void Render(object sender, EventArgs args) {
+            if (capturing) return;
             try {
                 if (pinching && (!AltHeld() || lastPinch.ElapsedMilliseconds > 180)) {
                     pinching = false;
@@ -315,7 +334,23 @@ internal static partial class PinchZoom {
             }
         }
 
+        private void TakeScreenshot() {
+            if (!zoomActive) return;
+            capturing = true;
+            timer.Stop();
+            try { CaptureScreenshot(viewport); }
+            finally {
+                capturing = false;
+                if (quit) Application.ExitThread();
+                else timer.Start();
+            }
+        }
+
         protected override void WndProc(ref Message message) {
+            if (capturing) {
+                base.WndProc(ref message);
+                return;
+            }
             if (message.Msg == WmInput) {
                 ReadInput(message.LParam);
             } else if (message.Msg == WmForwardWheel) {
@@ -323,6 +358,7 @@ internal static partial class PinchZoom {
             } else if (message.Msg == WmHotkey) {
                 switch (message.WParam.ToInt32()) {
                     case HotkeyId: System.Windows.Forms.Application.ExitThread(); break;
+                    case ScreenshotHotkeyId: TakeScreenshot(); break;
                     case ZoomInId:
                     case NumpadInId: Scale(1); break;
                     case ZoomOutId:
@@ -335,6 +371,7 @@ internal static partial class PinchZoom {
 
         public void Dispose() {
             timer.Dispose();
+            if (snipping != null) snipping.Dispose();
             if (wheel != null) wheel.Dispose();
             foreach (var device in devices.Values) device.Dispose();
             if (buffer != IntPtr.Zero) Marshal.FreeHGlobal(buffer);

@@ -9,7 +9,7 @@ if not exist "%compiler%" (
 if not exist "dist" mkdir "dist"
 set "kind=winexe"
 if /i "%~1"=="console" set "kind=exe"
-"%compiler%" /nologo /optimize+ /platform:x64 /target:%kind% /out:dist\Windows-PinchZoom.exe /reference:System.Windows.Forms.dll /reference:System.Drawing.dll PinchZoom.cs StandardInput.cs
+"%compiler%" /nologo /optimize+ /platform:x64 /target:%kind% /out:dist\Windows-PinchZoom.exe /reference:System.Windows.Forms.dll /reference:System.Drawing.dll PinchZoom.cs StandardInput.cs Screenshot.cs
 set "result=%errorlevel%"
 popd
 exit /b %result%

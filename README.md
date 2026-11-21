@@ -1,41 +1,42 @@
 # Windows PinchZoom
 
-A Windows desktop magnifier with KDE-style **Alt + two-finger pinch** on supported touchpads. Zoom into the desktop around your pointer, up to 100×, with a pixel grid at 15× and above. Mouse wheel and keyboard controls are also available.
+**KDE-style desktop zoom for Windows 11.** Hold <kbd>Alt</kbd> and pinch on a supported touchpad, then move the pointer to look around. Zoom up to **100×**, with a pixel grid from **15×**.
 
-[Download v0.1.0 for Windows 11 x64](https://github.com/KHammer404/windows-pinchzoom/releases/download/v0.1.0/Windows-PinchZoom-v0.1.0-win-x64.zip) · [Pre-release notes](https://github.com/KHammer404/windows-pinchzoom/releases/tag/v0.1.0) · [Report input compatibility](https://github.com/KHammer404/windows-pinchzoom/issues/new?template=compatibility.yml)
+[**Download the portable x64 ZIP**](https://github.com/KHammer404/windows-pinchzoom/releases/download/v0.1.0/Windows-PinchZoom-v0.1.0-win-x64.zip) · [14-second demo (MP4)](https://github.com/KHammer404/windows-pinchzoom/releases/download/v0.1.0/Windows-PinchZoom-demo.mp4) · [Report compatibility](https://github.com/KHammer404/windows-pinchzoom/issues/new?template=compatibility.yml)
 
-![The desktop zooms continuously from 1× into a pixel grid, then back out. The zoom stays centered on a small, colored pixel pattern.](docs/demo.gif)
+![The desktop zooms in and pans at 8.5×, then zooms to 100× and pans with the pixel grid visible before returning to normal.](docs/demo.gif)
 
-*Recorded CF-SV1 pinch input replayed on an illustrated desktop using the app's capture renderer.*
+*Recorded CF-SV1 pinch input replayed on a sample desktop.*
 
-## Download and use
+## Quick start
 
-Extract the ZIP and run **Windows-PinchZoom.exe**. The portable build runs in the background without installing a driver. Run the executable each time you want to use it.
+Extract the ZIP and run **Windows-PinchZoom.exe**. The [v0.1.0 pre-release](https://github.com/KHammer404/windows-pinchzoom/releases/tag/v0.1.0) runs in the background and uses your existing drivers. Quit Windows Magnifier or any other desktop magnifier first.
 
-| Input | What to do |
+| Action | Control |
 | --- | --- |
-| Tested CF-SV1 Synaptics touchpad | Hold **Alt** and spread or pinch two fingers. Disable **Pinch Zoom** in Synaptics settings if the browser zooms independently. |
-| Windows Precision Touchpad | Try **Alt** + two-finger pinch. This is experimental and needs testing on more hardware. |
-| Mouse wheel | Hold **Alt** and scroll. Some touchpads also emit compatible scroll events. |
-| Keyboard | **Ctrl+Alt+Plus/Minus** magnifies or reduces the desktop in standard mode. **Ctrl+Alt+0** resets to 100% in standard mode. |
-| Exit | **Ctrl+Shift+F12** returns the desktop to 100% and closes the app. |
+| Zoom around the pointer | Hold <kbd>Alt</kbd> and spread or pinch two fingers on a supported touchpad. |
+| Look around while zoomed in | Finish the pinch, then move the pointer. |
+| Zoom with the wheel | Hold <kbd>Alt</kbd> and scroll in standard mode. |
+| Zoom with the keyboard | In standard mode, hold <kbd>Ctrl</kbd>+<kbd>Alt</kbd> and press the <kbd>=</kbd> or <kbd>-</kbd> key. |
+| Reset to 100% | Press <kbd>Ctrl</kbd>+<kbd>Alt</kbd>+<kbd>0</kbd> in standard mode. |
+| Reset and exit | Press <kbd>Ctrl</kbd>+<kbd>Shift</kbd>+<kbd>F12</kbd>. |
 
-On the supported Synaptics device, the app selects the device-specific input path automatically. Run **Windows-PinchZoom.exe --standard** to test the standard input path on the same device, or use **--wheel** to skip Precision Touchpad input. Exit the current copy before changing modes.
+The app selects the Synaptics input path automatically on the supported CF-SV1. If the browser zooms during the gesture, disable **Pinch Zoom** in Synaptics settings. To use wheel or keyboard controls on the CF-SV1, exit the app and start it with `--standard`. Use `--wheel` to skip Precision Touchpad input and keep the wheel and keyboard controls.
 
 ## Compatibility
 
-| Setup | What has been verified |
+| Setup | Status |
 | --- | --- |
 | Panasonic Let's note CF-SV1RDLVS · Synaptics `SYNA0102`, driver `19.5.26.24` · Windows 11 x64 · one active display | Two-finger pinch tested on one laptop. |
 | Standard mode · Windows 11 x64 · one active display | Mouse wheel and keyboard zoom handlers verified with simulated input on the test laptop. |
-| Windows Precision Touchpad | Experimental. Pinch depends on which contact reports the device exposes. Try the mouse wheel or keyboard if pinch fails. |
-| Other legacy touchpads, including other `SYNA0102` models | Untested. The detected device ID alone does not confirm the report format. |
-| Multiple displays | Experimental in standard mode. The app targets the display under the pointer. |
+| Windows Precision Touchpad | Experimental. Pinch depends on which contact reports the device exposes. |
+| Other legacy touchpads, including other `SYNA0102` models | Untested. The report format still needs to be verified. |
+| Multiple displays | Experimental in standard mode. Zoom targets the display under the pointer. |
 
-Use the [compatibility form](https://github.com/KHammer404/windows-pinchzoom/issues/new?template=compatibility.yml) to tell us which laptop, Windows version and input method you tried. Working setups are welcome too.
+Trying a different laptop? [Share your model and test result](https://github.com/KHammer404/windows-pinchzoom/issues/new?template=compatibility.yml) so other users can check whether their setup is likely to work.
 
-Quit Windows Magnifier or another desktop magnifier before starting. On a single display the app uses native Windows magnification at low zoom. The capture renderer draws the high-zoom view and pixel grid in one click-through window. Captured frames stay in memory, and protected video may appear blank.
+On a single display, the app uses native Windows magnification at low zoom. The capture renderer draws the high-zoom view and pixel grid in one click-through window. Captured frames stay in memory. Protected video may appear blank.
 
 ## Build from source
 
-Run **build.cmd** on Windows x64. It uses the compiler from the installed .NET Framework and writes the portable executable to **dist**. Run **build.cmd console** for a build with console diagnostics.
+Run `build.cmd` on Windows x64. It uses the installed .NET Framework compiler and writes the portable executable to `dist`. Run `build.cmd console` to include console diagnostics.
